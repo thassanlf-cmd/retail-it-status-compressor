@@ -9,7 +9,11 @@ An AI-powered tool that turns a week of scattered project inputs into a clean st
 
 🔗 [Live demo](https://taha-retail-it-compress.streamlit.app/)
 
-![Screenshot](docs/screenshot.png)
+### Input
+![Input screen](docs/screenshot-input.png)
+
+### Output
+![Generated report](docs/screenshot-output.png)
 
 ## The problem
 

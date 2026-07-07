@@ -53,13 +53,33 @@ def copy_to_clipboard(text: str) -> None:
 
 
 def extract_overall_status(report: str) -> str:
-    match = re.search(r"(?is)^##?\s*Overall Status\s*(.*?)(?=^##?\s|\Z)", report)
-    if match:
-        status_block = match.group(1)
-        for emoji in ("🟢", "🟡", "🔴"):
-            if emoji in status_block:
-                return emoji
-    return ""
+    heading_match = re.search(r"(?im)^\s*(?:#{1,6}\s*)?(?:\d+\.\s*)?(?:\*\*|__)?overall status(?:\*\*|__)?\s*[:\-]*\s*$", report)
+    if not heading_match:
+        heading_match = re.search(r"(?im)^\s*(?:\*\*|__)?overall status(?:\*\*|__)?\s*[:\-]*", report)
+
+    if heading_match:
+        start = heading_match.end()
+        next_heading_match = re.search(r"(?im)^\s*(?:#{1,6}\s*)?(?:\d+\.\s*)?(?:\*\*|__)?(?:executive summary|key accomplishments|in-flight work|risks & issues|asks & blockers|next week focus)(?:\*\*|__)?\s*[:\-]*", report[start:])
+        if next_heading_match:
+            end = start + next_heading_match.start()
+            section_text = report[start:end]
+        else:
+            section_text = report[start:]
+    else:
+        section_text = report
+
+    if "🟢" in section_text:
+        return "green"
+    if "🟡" in section_text:
+        return "amber"
+    if "🔴" in section_text:
+        return "red"
+
+    status_match = re.search(r"(?is)(green|amber|red)", section_text)
+    if status_match:
+        return status_match.group(1).lower()
+
+    return "unknown"
 
 
 def build_prompt(project_name: str, reporting_week: str, audience: str, report_length: str, raw_inputs: str) -> str:
@@ -156,37 +176,39 @@ if "report" in st.session_state and st.session_state["report"]:
     metrics = st.session_state.get("report_metrics", {})
     st.divider()
 
-    with st.container(border=True):
-        overall_status = extract_overall_status(report)
-        if overall_status == "🟢":
-            st.success("Overall Status: 🟢 Green", icon="🟢")
-        elif overall_status == "🟡":
-            st.warning("Overall Status: 🟡 Amber", icon="🟡")
-        elif overall_status == "🔴":
-            st.error("Overall Status: 🔴 Red", icon="🔴")
+    overall_status = extract_overall_status(report)
+    print(f"DEBUG: overall_status={overall_status}")
+    if overall_status == "green":
+        st.success("🟢 Overall Status: Green")
+    elif overall_status == "amber":
+        st.warning("🟡 Overall Status: Amber")
+    elif overall_status == "red":
+        st.error("🔴 Overall Status: Red")
+    else:
+        st.info("Status not detected — see report body")
 
-        metric_col1, metric_col2, metric_col3 = st.columns(3)
-        with metric_col1:
-            st.metric("Generation time", f"{metrics.get('generation_time', 0):.1f}s")
-        with metric_col2:
-            st.metric("Input length", f"{metrics.get('input_length', 0)} words")
-        with metric_col3:
-            st.metric("Report length", f"{metrics.get('report_length', 0)} words")
+    metric_col1, metric_col2, metric_col3 = st.columns(3)
+    with metric_col1:
+        st.metric("Generation time", f"{metrics.get('generation_time', 0):.1f}s")
+    with metric_col2:
+        st.metric("Input length", f"{metrics.get('input_length', 0)} words")
+    with metric_col3:
+        st.metric("Report length", f"{metrics.get('report_length', 0)} words")
 
-        st.markdown(report)
+    st.markdown(report)
 
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("Copy to clipboard"):
-                copy_to_clipboard(report)
-                st.toast("Report copied to clipboard")
-        with col2:
-            st.download_button(
-                "📥 Download report (.md)",
-                report,
-                file_name=f"{(project_name or 'weekly-status').replace(' ', '_')}_{(reporting_week or 'week').replace(' ', '_')}.md",
-                mime="text/markdown",
-            )
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("Copy to clipboard"):
+            copy_to_clipboard(report)
+            st.toast("Report copied to clipboard")
+    with col2:
+        st.download_button(
+            "📥 Download report (.md)",
+            report,
+            file_name=f"{(project_name or 'weekly-status').replace(' ', '_')}_{(reporting_week or 'week').replace(' ', '_')}.md",
+            mime="text/markdown",
+        )
 elif "report" in st.session_state:
     st.info("The report could not be generated. Please check your API key and try again.")
 
