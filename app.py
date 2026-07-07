@@ -159,11 +159,11 @@ if "report" in st.session_state and st.session_state["report"]:
     with st.container(border=True):
         overall_status = extract_overall_status(report)
         if overall_status == "🟢":
-            st.success("🟢 Green")
+            st.success("Overall Status: 🟢 Green", icon="🟢")
         elif overall_status == "🟡":
-            st.warning("🟡 Amber")
+            st.warning("Overall Status: 🟡 Amber", icon="🟡")
         elif overall_status == "🔴":
-            st.error("🔴 Red")
+            st.error("Overall Status: 🔴 Red", icon="🔴")
 
         metric_col1, metric_col2, metric_col3 = st.columns(3)
         with metric_col1:
