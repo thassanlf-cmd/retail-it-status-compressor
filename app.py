@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import time
 from datetime import date
 
@@ -49,6 +50,16 @@ def copy_to_clipboard(text: str) -> None:
         """,
         height=0,
     )
+
+
+def extract_overall_status(report: str) -> str:
+    match = re.search(r"(?is)^##?\s*Overall Status\s*(.*?)(?=^##?\s|\Z)", report)
+    if match:
+        status_block = match.group(1)
+        for emoji in ("🟢", "🟡", "🔴"):
+            if emoji in status_block:
+                return emoji
+    return ""
 
 
 def build_prompt(project_name: str, reporting_week: str, audience: str, report_length: str, raw_inputs: str) -> str:
@@ -146,11 +157,12 @@ if "report" in st.session_state and st.session_state["report"]:
     st.divider()
 
     with st.container(border=True):
-        if "🟢" in report:
+        overall_status = extract_overall_status(report)
+        if overall_status == "🟢":
             st.success("🟢 Green")
-        elif "🟡" in report:
+        elif overall_status == "🟡":
             st.warning("🟡 Amber")
-        elif "🔴" in report:
+        elif overall_status == "🔴":
             st.error("🔴 Red")
 
         metric_col1, metric_col2, metric_col3 = st.columns(3)
@@ -178,4 +190,4 @@ if "report" in st.session_state and st.session_state["report"]:
 elif "report" in st.session_state:
     st.info("The report could not be generated. Please check your API key and try again.")
 
-st.markdown("<div style='text-align:center; margin-top: 2rem; color: #6b7280;'>Built by [Your Name] · Powered by Claude Sonnet 4.6 · View source on GitHub</div>", unsafe_allow_html=True)
+st.markdown("<div style='text-align:center; margin-top: 2rem; color: #6b7280;'>Built by Taha Hassan · Powered by Claude Sonnet 4.6 · View source on GitHub</div>", unsafe_allow_html=True)
